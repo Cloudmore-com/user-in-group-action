@@ -1,0 +1,22 @@
+name: Check USER in GROUP
+description: Check that user in group
+inputs:
+  group:
+    description: In what group current user must be
+    required: true
+  organisation:
+    description: Organisation login
+    required: true
+  github_token:
+    description: Github token with Organisation READ access rights
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        echo "Group ${{ inputs.group }} must contain user ${{ github.actor }}"
+        curl -X POST 'https://api.github.com/graphql' -H 'Authorization: Bearer ${{ inputs.github_token }}' -H 'Content-Type: application/json' --data-raw \
+        '{"query":"{organization(login: \"${{ inputs.organisation }}\") {teams(first:100,userLogins:[\"${{ github.actor }}\"]){edges{node{name}}}}}"}' 2>/dev/null | \
+        jq -r '.data.organization.teams.edges[].node?.name?' | \
+        grep -q ${{ inputs.group }}
